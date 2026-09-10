@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Overpass API</title>
+<style>
+  :root {
+    --bg:#fff; --fg:#1a1a1a; --muted:#70757a; --line:#dde0e3; --panel:#fafbfc;
+    --accent:#e8590c; --link:#1971c2; --code:#f4f6f8; --ok:#2b8a3e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#16181a; --fg:#e6e6e6; --muted:#969ba1; --line:#333940;
+            --panel:#1c1f22; --code:#1f2327; --link:#66a3e0; --ok:#51cf66; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  .wrap { max-width:820px; margin:0 auto; padding:34px 22px 80px; }
+  h1 { font-size:23px; margin:0 0 3px; letter-spacing:-.02em; }
+  h2 { font-size:16px; margin:34px 0 10px; letter-spacing:-.01em;
+       padding-bottom:5px; border-bottom:1px solid var(--line); }
+  h3 { font-size:13.5px; margin:20px 0 6px; color:var(--muted);
+       text-transform:uppercase; letter-spacing:.05em; }
+  p, li { color:var(--fg); }
+  .sub { color:var(--muted); font-size:13.5px; margin:0 0 22px; }
+  a { color:var(--link); }
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.9em;
+         background:var(--code); padding:1px 5px; border-radius:4px; }
+  pre { background:var(--code); border:1px solid var(--line); border-radius:7px;
+        padding:12px 14px; overflow-x:auto; font-size:12.5px; line-height:1.5;
+        font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  pre code { background:none; padding:0; font-size:inherit; }
+  .badge { display:inline-flex; align-items:center; gap:7px; font-size:12.5px;
+           background:var(--panel); border:1px solid var(--line); border-radius:20px;
+           padding:4px 12px; color:var(--muted); }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--ok); flex:none; }
+  .endpoint { display:flex; gap:8px; align-items:center; background:var(--panel);
+              border:1px solid var(--line); border-radius:7px; padding:11px 13px;
+              margin:14px 0; flex-wrap:wrap; }
+  .endpoint code { background:none; font-size:14px; word-break:break-all; flex:1; min-width:220px; }
+  button { font:inherit; font-size:12.5px; padding:5px 12px; border-radius:5px;
+           border:1px solid var(--line); background:var(--bg); color:var(--fg); cursor:pointer; }
+  button:hover:not(:disabled) { background:var(--code); }
+  button:disabled { opacity:.5; cursor:default; }
+  button.primary { background:var(--link); border-color:var(--link); color:#fff; }
+  textarea { width:100%; min-height:118px; font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
+             padding:11px 13px; border:1px solid var(--line); border-radius:7px;
+             background:var(--code); color:var(--fg); resize:vertical; }
+  .row { display:flex; gap:9px; align-items:center; margin-top:9px; flex-wrap:wrap; }
+  .note { border-left:3px solid var(--accent); background:var(--panel);
+          padding:10px 14px; margin:14px 0; border-radius:0 6px 6px 0; font-size:14px; }
+  table { border-collapse:collapse; width:100%; font-size:13.5px; margin:10px 0; }
+  th, td { text-align:left; padding:6px 10px 6px 0; border-bottom:1px solid var(--line);
+           vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase;
+       letter-spacing:.04em; }
+  .muted { color:var(--muted); }
+  #out { display:none; margin-top:10px; }
+  #out pre { max-height:340px; overflow:auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Overpass API</h1>
+  <p class="sub">
+    A self-hosted Overpass API. Point any Overpass client here instead of
+    <code>overpass-api.de</code> and your queries work unchanged.
+  </p>
+  <p><span class="badge"><span class="dot"></span><span id="status">checking data vintage&hellip;</span></span></p>
+
+  <h2>Endpoint</h2>
+  <div class="endpoint">
+    <code id="ep">&hellip;</code>
+    <button id="copy" type="button">Copy</button>
+  </div>
+  <p class="muted" style="font-size:13.5px">
+    Substitute it wherever a tool asks for an Overpass server or interpreter URL.
+    From outside the tailnet it needs the username and password you were given;
+    your browser has already sent them to show you this page.
+  </p>
+
+  <h2>Try it</h2>
+  <textarea id="ql" spellcheck="false">[out:json][timeout:25];
+nwr["amenity"="cafe"](39.94,-83.02,39.98,-82.96);
+out geom;</textarea>
+  <div class="row">
+    <button id="run" class="primary" type="button">Run query</button>
+    <span class="muted" id="hint">Cafés in downtown Columbus.</span>
+  </div>
+  <div id="out"><pre><code id="result"></code></pre></div>
+
+  <h2>From the command line</h2>
+<pre><code>curl -X POST <span class="ep-inline">&lt;endpoint&gt;</span> --data-urlencode 'data=
+  [out:json][timeout:25];
+  nwr["amenity"="cafe"](39.94,-83.02,39.98,-82.96);
+  out geom;'</code></pre>
+  <p class="muted" style="font-size:13.5px">Add <code>-u username:password</code> from outside the tailnet.</p>
+
+  <h2>From a client</h2>
+  <h3>QGIS (QuickOSM)</h3>
+  <p>Settings → Advanced → Overpass API, then replace the server URL. QuickOSM's
+  presets and its own query builder work unchanged.</p>
+  <h3>Python</h3>
+<pre><code>import overpy
+api = overpy.Overpass(url="<span class="ep-inline">&lt;endpoint&gt;</span>")
+r = api.query('[out:json];node["amenity"="cafe"](39.94,-83.02,39.98,-82.96);out;')
+print(len(r.nodes))</code></pre>
+<pre><code>import requests
+r = requests.post("<span class="ep-inline">&lt;endpoint&gt;</span>",
+                  data={"data": '[out:json];node["amenity"="cafe"](39.94,-83.02,39.98,-82.96);out;'},
+                  auth=("username", "password"))
+r.json()["elements"]</code></pre>
+
+  <h2>What is in it</h2>
+  <table>
+    <tr><th>Coverage</th><td id="coverage">the extract this server was built from &mdash; not the whole planet</td></tr>
+    <tr><th>Freshness</th><td id="freshness">&hellip;</td></tr>
+    <tr><th>History</th><td>Current data only. Element versions and timestamps are kept, so
+        <code>out meta;</code> works; usernames are stripped by the upstream extract.</td></tr>
+    <tr><th>Areas</th><td>Built, so <code>area[name="&hellip;"]</code> and <code>is_in</code> work.</td></tr>
+  </table>
+  <p class="muted" style="font-size:13.5px">
+    Queries outside the covered region return nothing rather than an error, which
+    looks identical to a query that legitimately matched nothing.
+  </p>
+
+  <h2>Two things that will cost you an afternoon</h2>
+  <div class="note">
+    <b><code>out tags geom</code> silently drops relation geometry.</b>
+    <code>tags</code> means tags-only, and a relation's geometry lives in its
+    members &mdash; so you get a bounding box and nothing to draw. Use plain
+    <code>out geom;</code> when you want relation geometry.
+  </div>
+  <div class="note">
+    <b>Elements come back nodes, then ways, then relations.</b> A limit like
+    <code>out geom 100;</code> truncates in that order, so a low cap can return
+    only nodes and no polygons at all. Cap generously, or query one type at a time.
+  </div>
+  <p class="muted" style="font-size:13.5px">
+    Also worth knowing: <code>out geom</code> on a relation expands every member
+    way, so a handful of boundary relations can turn one query into megabytes.
+    <code>out tags bb;</code> gives you the extent instead, which is usually what
+    you wanted.
+  </p>
+
+  <h2>Reference</h2>
+  <ul>
+    <li><a href="https://wiki.openstreetmap.org/wiki/Overpass_API/Overpass_QL" target="_blank" rel="noopener">Overpass QL language reference</a></li>
+    <li><a href="https://wiki.openstreetmap.org/wiki/Overpass_API/Overpass_API_by_Example" target="_blank" rel="noopener">Overpass by example</a></li>
+    <li><a href="https://overpass-turbo.eu" target="_blank" rel="noopener">Overpass Turbo</a> &mdash; interactive query builder; set its server to the endpoint above</li>
+  </ul>
+  <h3>Other paths on this server</h3>
+  <table>
+    <tr><th>Path</th><th>Returns</th></tr>
+    <tr><td><code>/api/interpreter</code></td><td>the query endpoint</td></tr>
+    <tr><td><code>/api/status</code></td><td>connection id, server time, running queries</td></tr>
+    <tr><td><code>/api/timestamp</code></td><td>data vintage, as plain text</td></tr>
+    <tr><td><code>/api/kill_my_queries</code></td><td>cancels your in-flight queries</td></tr>
+    <tr><td><code>/map/</code></td><td>an interactive map over this same data</td></tr>
+  </table>
+
+</div>
+
+<script type="module">
+const $ = id => document.getElementById(id);
+const ORIGIN = location.origin;
+const ENDPOINT = `${ORIGIN}/api/interpreter`;
+
+$('ep').textContent = ENDPOINT;
+for (const el of document.querySelectorAll('.ep-inline')) el.textContent = ENDPOINT;
+
+$('copy').onclick = async () => {
+  try {
+    await navigator.clipboard.writeText(ENDPOINT);
+    $('copy').textContent = 'Copied';
+    setTimeout(() => $('copy').textContent = 'Copy', 1400);
+  } catch { $('copy').textContent = 'Copy failed'; }
+};
+
+// Data vintage, from the server rather than hardcoded here.
+(async () => {
+  try {
+    const r = await fetch(`${ORIGIN}/api/timestamp`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const iso = (await r.text()).trim();
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) throw new Error('unparseable');
+    const mins = Math.max(0, Math.round((Date.now() - d.getTime()) / 60000));
+    const age = mins < 90 ? `${mins} min`
+              : mins < 60 * 36 ? `${Math.round(mins / 60)} hours`
+              : `${Math.round(mins / 1440)} days`;
+    $('status').textContent = `data is ${age} behind live OpenStreetMap`;
+    $('freshness').innerHTML =
+      `<code>${iso}</code> &mdash; ${age} behind live OSM. Updated from a `
+      + `replication stream, so this moves on its own.`;
+  } catch (e) {
+    $('status').textContent = 'could not read the data vintage';
+    $('freshness').textContent = 'unavailable';
+  }
+})();
+
+$('run').onclick = async () => {
+  const btn = $('run');
+  btn.disabled = true; btn.textContent = 'Running…';
+  $('out').style.display = 'block';
+  $('result').textContent = '';
+  const t0 = performance.now();
+  try {
+    const r = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ data: $('ql').value })
+    });
+    const text = await r.text();
+    const ms = Math.round(performance.now() - t0);
+    let shown;
+    try {
+      const d = JSON.parse(text);
+      const n = (d.elements || []).length;
+      $('hint').textContent = `${n} element${n === 1 ? '' : 's'} in ${ms} ms`;
+      shown = JSON.stringify(d, null, 1);
+    } catch {
+      // Overpass reports query errors as HTML with a 200, so surface the text.
+      $('hint').textContent = `HTTP ${r.status} in ${ms} ms`;
+      shown = text.replace(/<[^>]+>/g, '').replace(/\n{3,}/g, '\n\n').trim();
+    }
+    $('result').textContent = shown.length > 24000
+      ? shown.slice(0, 24000) + '\n\n… truncated for display'
+      : shown;
+  } catch (e) {
+    $('hint').textContent = 'request failed';
+    $('result').textContent = String(e.message || e);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Run query';
+  }
+};
+</script>
+</body>
+</html>

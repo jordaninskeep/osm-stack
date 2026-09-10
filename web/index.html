@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Central Ohio OSM</title>
+<link rel="stylesheet" href="./maplibre-gl.css">
+<style>
+  :root {
+    --bg:#fff; --fg:#1a1a1a; --muted:#70757a; --line:#dde0e3;
+    --accent:#e8590c; --sel:#1971c2; --panel:#fff; --hover:#f1f3f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#16181a; --fg:#e6e6e6; --muted:#969ba1; --line:#333940;
+            --panel:#1c1f22; --hover:#24282c; }
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; overflow:hidden;
+              font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;
+              color:var(--fg); background:var(--bg); }
+  #map { position:absolute; inset:0; }
+
+  /* ---- sidebar, openstreetmap.org style ---- */
+  #side {
+    position:absolute; top:0; left:0; bottom:0; width:330px; z-index:3;
+    background:var(--panel); border-right:1px solid var(--line);
+    display:flex; flex-direction:column; transform:translateX(0);
+    transition:transform .18s ease; box-shadow:2px 0 12px rgba(0,0,0,.07);
+  }
+  #side.hidden { transform:translateX(-331px); }
+  #side header { padding:11px 13px; border-bottom:1px solid var(--line); }
+  #side h1 { margin:0; font-size:14px; font-weight:650; letter-spacing:-.01em; }
+  #side .sub { font-size:11.5px; color:var(--muted); margin-top:1px; }
+  #hint { padding:13px; font-size:12.5px; color:var(--muted); }
+  #hint kbd { background:var(--hover); border:1px solid var(--line); border-radius:4px;
+              padding:1px 5px; font:inherit; font-size:11px; }
+
+  #list { flex:1; overflow-y:auto; }
+  .grp { padding:7px 13px 3px; font-size:10.5px; font-weight:700; letter-spacing:.05em;
+         text-transform:uppercase; color:var(--muted); background:var(--bg);
+         position:sticky; top:0; border-bottom:1px solid var(--line); }
+  .it { padding:7px 13px; border-bottom:1px solid var(--line); cursor:pointer; display:flex; gap:8px; }
+  .it:hover { background:var(--hover); }
+  .it.on { background:var(--hover); box-shadow:inset 3px 0 0 var(--sel); }
+  .ico { width:9px; height:9px; border-radius:50%; margin-top:5px; flex:none; }
+  .ico.point { background:#5f3dc4; } .ico.line { background:#0c8599; border-radius:1px; height:3px; margin-top:8px; }
+  .ico.polygon { background:transparent; border:2px solid #1c7ed6; border-radius:2px; }
+  .it .nm { font-size:13px; }
+  .it .ds { font-size:11.5px; color:var(--muted); margin-top:1px; }
+
+  #detail { border-top:1px solid var(--line); max-height:48%; overflow-y:auto;
+            padding:11px 13px; display:none; background:var(--bg); }
+  #detail h2 { margin:0 0 2px; font-size:14px; }
+  #detail .meta { font-size:11.5px; color:var(--muted); margin-bottom:8px; }
+  #detail table { border-collapse:collapse; width:100%; font-size:12px; }
+  #detail td { padding:2px 8px 2px 0; vertical-align:top; border-bottom:1px solid var(--line); }
+  #detail td:first-child { color:var(--muted); white-space:nowrap; width:38%; word-break:break-all; }
+  #detail td:last-child { word-break:break-word; }
+  #detail a { color:var(--sel); }
+
+  #toggle { position:absolute; top:10px; left:340px; z-index:4; width:30px; height:30px;
+            border:1px solid var(--line); background:var(--panel); color:var(--fg);
+            border-radius:5px; cursor:pointer; font-size:15px; line-height:1;
+            box-shadow:0 1px 4px rgba(0,0,0,.16); transition:left .18s ease; }
+  #side.hidden ~ #toggle { left:10px; }
+
+  #layers { position:absolute; top:10px; right:50px; z-index:4; background:var(--panel);
+            border:1px solid var(--line); border-radius:5px; padding:7px 9px; font-size:12px;
+            box-shadow:0 1px 4px rgba(0,0,0,.16); }
+  #layers label { display:flex; gap:6px; align-items:center; cursor:pointer; }
+  /* ---- search panel ---- */
+  #search { border-bottom:1px solid var(--line); font-size:12.5px; }
+  #search > summary { padding:9px 13px; cursor:pointer; font-weight:600; font-size:12.5px;
+                      list-style:none; display:flex; justify-content:space-between; align-items:center; }
+  #search > summary::-webkit-details-marker { display:none; }
+  #search > summary::after { content:'\25be'; color:var(--muted); transition:transform .15s; }
+  #search[open] > summary::after { transform:rotate(180deg); }
+  #search .body { padding:0 13px 11px; }
+  #search .lbl { font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+                 color:var(--muted); margin:9px 0 4px; }
+  .tagrow { display:flex; gap:5px; margin-bottom:5px; align-items:center; }
+  .tagrow input { flex:1; min-width:0; padding:4px 6px; font:inherit; font-size:12px;
+                  border:1px solid var(--line); border-radius:4px;
+                  background:var(--bg); color:var(--fg); }
+  .tagrow input:focus { outline:2px solid var(--sel); outline-offset:-1px; }
+  .tagrow button { flex:none; width:22px; height:22px; padding:0; border:1px solid var(--line);
+                   background:var(--bg); color:var(--muted); border-radius:4px; cursor:pointer;
+                   font-size:14px; line-height:1; }
+  .tagrow button:hover { background:var(--hover); color:var(--fg); }
+  #addtag { border:none; background:none; color:var(--sel); cursor:pointer; padding:1px 0;
+            font:inherit; font-size:12px; }
+  .kinds { display:grid; grid-template-columns:1fr 1fr; gap:2px 8px; }
+  .kinds label, .modes label { display:flex; gap:5px; align-items:center; cursor:pointer; font-size:12px; }
+  .modes { display:flex; gap:11px; }
+  #search select, #search input[type=number] { width:100%; padding:4px 6px; font:inherit; font-size:12px;
+            border:1px solid var(--line); border-radius:4px; background:var(--bg); color:var(--fg); }
+  .row2 { display:flex; gap:7px; }
+  .row2 > div { flex:1; min-width:0; }
+  .btns { display:flex; gap:6px; margin-top:11px; }
+  .btns button { flex:1; padding:6px 8px; font:inherit; font-size:12.5px; font-weight:600;
+                 border-radius:5px; cursor:pointer; border:1px solid var(--line);
+                 background:var(--bg); color:var(--fg); }
+  .btns button:hover:not(:disabled) { background:var(--hover); }
+  .btns button.primary { background:var(--sel); border-color:var(--sel); color:#fff; }
+  .btns button.primary:hover { filter:brightness(1.08); }
+  .btns button:disabled { opacity:.45; cursor:default; }
+  #searchmsg { margin-top:8px; font-size:11.5px; color:var(--accent); display:none; }
+  .empty { padding:13px; font-size:12.5px; color:var(--muted); }
+
+  #busy { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); z-index:4;
+          background:var(--panel); border:1px solid var(--line); border-radius:14px;
+          padding:4px 13px; font-size:12px; box-shadow:0 1px 5px rgba(0,0,0,.16); display:none; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<aside id="side">
+  <header>
+    <h1>Central Ohio OSM</h1>
+    <div class="sub" id="sub">Overpass API</div>
+  </header>
+  <details id="search" open>
+    <summary>Search by tag</summary>
+    <div class="body">
+      <div class="lbl">Tags</div>
+      <div id="tagrows"></div>
+      <button id="addtag" type="button">+ add tag</button>
+
+      <div class="lbl">Match</div>
+      <div class="modes">
+        <label><input type="radio" name="mode" value="any" checked> any of them</label>
+        <label><input type="radio" name="mode" value="all"> all of them</label>
+      </div>
+
+      <div class="lbl">Object types</div>
+      <div class="kinds">
+        <label><input type="checkbox" class="kind" value="node" checked> Nodes</label>
+        <label><input type="checkbox" class="kind" value="way" checked> Ways</label>
+        <label><input type="checkbox" class="kind" value="relation" checked> Relations</label>
+      </div>
+
+      <div class="row2" style="margin-top:9px">
+        <div>
+          <div class="lbl" style="margin-top:0">Area</div>
+          <select id="scope">
+            <option value="view">Current view</option>
+            <option value="region">Whole region</option>
+          </select>
+        </div>
+        <div>
+          <div class="lbl" style="margin-top:0">Max results</div>
+          <input type="number" id="maxfeat" value="1000" min="1" max="10000" step="100">
+        </div>
+      </div>
+
+      <div class="btns">
+        <button id="go" class="primary" type="button">Search</button>
+        <button id="export" type="button" disabled>Export</button>
+        <button id="clear" type="button">Clear</button>
+      </div>
+      <div id="searchmsg"></div>
+    </div>
+  </details>
+  <div id="hint">
+    <b>Click the map</b> to query features there &mdash; or <kbd>right-click</kbd> anywhere,
+    the way openstreetmap.org does.<br><br>
+    Enclosing areas are listed first (smallest to largest), then nearby objects by distance.
+    <br><br>Everything here is answered by the Overpass API on this host.
+  </div>
+  <div id="list"></div>
+  <div id="detail"></div>
+</aside>
+<button id="toggle" title="Toggle sidebar">&#9776;</button>
+
+<div id="busy">Querying&hellip;</div>
+
+<script type="module">
+// MapLibre v6 ships ESM with NAMED exports only -- there is no default export.
+// Imported under another name on purpose. As `Map` it shadows the built-in,
+// and `new Map()` then builds a MapLibre map with no options instead of a
+// hash -- which fails deep inside the constructor reading options off
+// undefined, nowhere near the line that caused it.
+import { Map as MapLibreMap, NavigationControl, ScaleControl, Marker } from './maplibre-gl.mjs';
+
+const API = location.origin;
+// Not /api/interpreter: that path is behind basic auth on the public listener
+// for teammates' tooling, and a browser fetch() cannot satisfy it. /map-api/
+// reaches the same Overpass under whatever the listener already enforces.
+const OVERPASS = `${API}/map-api/interpreter`;
+const $ = id => document.getElementById(id);
+
+// ---- Overpass client -----------------------------------------------------
+// Everything the map draws now comes from Overpass QL. Two things have to
+// happen to each response: it is OSM JSON rather than GeoJSON, and `out geom`
+// gives ways an inline coordinate list rather than a typed geometry.
+
+async function overpass(ql) {
+  const r = await fetch(OVERPASS, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ data: ql })
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const text = await r.text();
+  // Overpass answers a failed query with HTTP 200 and an HTML error page, so
+  // a parse failure here is the useful signal, not the status code.
+  let d;
+  try { d = JSON.parse(text); }
+  catch {
+    const m = text.match(/error[^<]*/i);
+    throw new Error(m ? m[0].replace(/\s+/g, ' ').slice(0, 160) : 'Overpass returned a non-JSON response');
+  }
+  if (d.remark) throw new Error(d.remark);
+  if (d.osm3s && d.osm3s.timestamp_osm_base) showVintage(d.osm3s.timestamp_osm_base);
+  return d;
+}
+
+// Tags that make a closed way an area rather than a loop of road. The full OSM
+// list is long; these are the ones that actually show up in a query panel.
+const AREA_KEYS = ['building','building:part','landuse','leisure','amenity','natural',
+                   'shop','tourism','historic','man_made','office','place','boundary',
+                   'waterway','water','military','aeroway','craft','healthcare','public_transport'];
+const isArea = t => !!t && (t.area === 'yes'
+  || (t.area !== 'no' && AREA_KEYS.some(k => k in t)));
+
+const ring = g => g.map(p => [p.lon, p.lat]);
+
+// OSM JSON -> GeoJSON, for the subset `out geom` produces.
+function toFeature(el) {
+  let geometry = null;
+  if (el.type === 'node' && el.lat != null) {
+    geometry = { type: 'Point', coordinates: [el.lon, el.lat] };
+  } else if (el.type === 'way' && el.geometry) {
+    const c = ring(el.geometry.filter(p => p));
+    if (c.length < 2) return null;
+    const closed = c.length > 3 && c[0][0] === c[c.length-1][0] && c[0][1] === c[c.length-1][1];
+    geometry = (closed && isArea(el.tags))
+      ? { type: 'Polygon', coordinates: [c] }
+      : { type: 'LineString', coordinates: c };
+  } else if (el.type === 'relation' && el.members) {
+    // Multipolygon relations come back as member ways with their own geometry.
+    // Outers become polygons; inners are dropped rather than matched to their
+    // outer, which would need ring assembly this panel does not warrant.
+    const outers = el.members.filter(m => m.type === 'way' && m.geometry
+                                          && m.role !== 'inner').map(m => ring(m.geometry));
+    const usable = outers.filter(c => c.length >= 2);
+    if (!usable.length) return null;
+    const rel = (el.tags || {}).type;
+    geometry = (rel === 'multipolygon' || rel === 'boundary')
+      ? { type: 'MultiPolygon',
+          coordinates: usable.filter(c => c.length > 3).map(c => [[...c, c[0]]]) }
+      : { type: 'MultiLineString', coordinates: usable };
+    if (geometry.type === 'MultiPolygon' && !geometry.coordinates.length) {
+      geometry = { type: 'MultiLineString', coordinates: usable };
+    }
+  }
+  // `out tags bb` returns a bounding box instead of geometry. Downloading the
+  // true outline of a state boundary to highlight it costs megabytes, so the
+  // extent stands in for it and is flagged as approximate.
+  let approx = false;
+  if (!geometry && el.bounds) {
+    const b = el.bounds;
+    geometry = { type:'Polygon', coordinates:[[
+      [b.minlon,b.minlat],[b.maxlon,b.minlat],[b.maxlon,b.maxlat],
+      [b.minlon,b.maxlat],[b.minlon,b.minlat]]] };
+    approx = true;
+  }
+  if (!geometry) return null;
+  const tags = el.tags || {};
+  return {
+    type: 'Feature',
+    id: `${el.type}/${el.id}`,
+    geometry,
+    properties: {
+      osm_type: el.type, osm_id: el.id, name: tags.name || null, tags, approx,
+      version: el.version, timestamp: el.timestamp
+    }
+  };
+}
+
+const toFeatures = d => (d.elements || []).map(toFeature).filter(Boolean);
+
+// ---- geometry helpers ----------------------------------------------------
+const R_EARTH = 6371000;
+function haversine(a, b) {
+  const t = Math.PI / 180;
+  const dLat = (b[1]-a[1]) * t, dLon = (b[0]-a[0]) * t;
+  const s = Math.sin(dLat/2)**2
+          + Math.cos(a[1]*t) * Math.cos(b[1]*t) * Math.sin(dLon/2)**2;
+  return 2 * R_EARTH * Math.asin(Math.sqrt(s));
+}
+function eachCoord(g, fn) {
+  (function walk(c) {
+    if (typeof c[0] === 'number') fn(c); else c.forEach(walk);
+  })(g.coordinates || []);
+}
+function minDistance(g, pt) {
+  let best = Infinity;
+  eachCoord(g, c => { const d = haversine(c, pt); if (d < best) best = d; });
+  return best;
+}
+function pointInRing(pt, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > pt[1]) !== (yj > pt[1])
+        && pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function contains(g, pt) {
+  if (g.type === 'Polygon') return pointInRing(pt, g.coordinates[0]);
+  if (g.type === 'MultiPolygon') return g.coordinates.some(p => pointInRing(pt, p[0]));
+  return false;
+}
+// Shoelace on degrees, scaled for latitude. Only used to order enclosing areas
+// innermost-first, so a rough figure is enough.
+function roughArea(g) {
+  const rings = g.type === 'Polygon' ? [g.coordinates[0]]
+              : g.type === 'MultiPolygon' ? g.coordinates.map(p => p[0]) : [];
+  let total = 0;
+  for (const r of rings) {
+    let a = 0;
+    for (let i = 0, j = r.length - 1; i < r.length; j = i++)
+      a += (r[j][0] * r[i][1]) - (r[i][0] * r[j][1]);
+    const latScale = Math.cos((r[0]?.[1] || 0) * Math.PI / 180);
+    total += Math.abs(a / 2) * latScale * (111320 ** 2);
+  }
+  return total;
+}
+
+const styleUrl = './style.json';
+const style = await fetch(styleUrl).then(r => r.json());
+const swap = u => typeof u === 'string' ? u.replace(/^https?:\/\/[^/]+/, API) : u;
+style.glyphs = swap(style.glyphs);
+for (const s of Object.values(style.sources)) if (s.url) s.url = swap(s.url);
+
+const map = new MapLibreMap({
+  container: 'map', style,
+  center: [-83.0007, 39.9612], zoom: 15, hash: true,
+  maxBounds: [[-85.6, 38.0], [-80.4, 41.9]]
+});
+window.__map = map;
+map.addControl(new NavigationControl({ visualizePitch: false }), 'top-right');
+map.addControl(new ScaleControl({ unit: 'imperial' }), 'bottom-right');
+
+// Highlight layers for the selected feature.
+map.on('load', () => {
+  map.addSource('sel', { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
+  // Fill only SMALL polygons. Selecting a city or county otherwise floods the
+  // whole viewport orange and hides the map underneath; those get an outline.
+  map.addLayer({ id:'sel-fill', type:'fill', source:'sel',
+    filter:['all',
+      ['in',['geometry-type'],['literal',['Polygon','MultiPolygon']]],
+      ['!=',['get','big'], true]],
+    paint:{ 'fill-color':'#e8590c', 'fill-opacity':0.25 } });
+  map.addLayer({ id:'sel-line', type:'line', source:'sel',
+    filter:['in',['geometry-type'],['literal',['Polygon','MultiPolygon','LineString','MultiLineString']]],
+    paint:{ 'line-color':'#e8590c', 'line-width':3.5, 'line-opacity':0.95 } });
+  map.addLayer({ id:'sel-point', type:'circle', source:'sel',
+    filter:['in',['geometry-type'],['literal',['Point','MultiPoint']]],
+    paint:{ 'circle-radius':8, 'circle-color':'#e8590c',
+            'circle-stroke-color':'#fff', 'circle-stroke-width':2.5 } });
+});
+
+$('toggle').onclick = () => $('side').classList.toggle('hidden');
+
+let marker = null, features = [], selected = -1;
+const MAX_CLICK = 300;  // Overpass emits nodes before ways, so a low cap
+                        // truncates before any polygon is reached and the
+                        // enclosing test never fires. 300 covers a 400 m
+                        // radius downtown with room to spare.
+let listMode = 'click';     // 'click' = query-at-point, 'search' = tag search
+let searchLimit = 1000;     // the max_features last asked for, to spot truncation
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// Radius scales with zoom so a click means roughly the same on-screen distance
+// (~14px) whether you are looking at a city or a single building.
+function radiusFor() {
+  const m = 40075016.686 * Math.cos(map.getCenter().lat * Math.PI/180)
+            / Math.pow(2, map.getZoom() + 8);
+  return Math.min(400, Math.max(4, m * 14));
+}
+
+const iconFor = g => (g.type === 'Point' || g.type === 'MultiPoint') ? 'point'
+                   : (g.type === 'Polygon' || g.type === 'MultiPolygon') ? 'polygon' : 'line';
+
+function describe(p) {
+  const t = p.tags || {};
+  // The most identifying tag, the way OSM's query panel labels things.
+  for (const k of ['amenity','shop','building','highway','leisure','landuse','natural',
+                   'waterway','railway','tourism','historic','man_made','boundary','place',
+                   'office','craft','healthcare','power','barrier','aeroway'])
+    if (t[k]) return `${k} = ${t[k]}`;
+  const keys = Object.keys(t).filter(k => k !== 'name');
+  return keys.length ? `${keys[0]} = ${t[keys[0]]}` : p.osm_type;
+}
+
+async function queryAt(lngLat) {
+  $('busy').style.display = 'block';
+  $('hint').style.display = 'none';
+  if (marker) marker.remove();
+  marker = new Marker({ color:'#e8590c', scale:0.75 }).setLngLat(lngLat).addTo(map);
+
+  const lat = lngLat.lat.toFixed(7), lon = lngLat.lng.toFixed(7);
+  const r = Math.round(radiusFor());
+  const pt = [lngLat.lng, lngLat.lat];
+
+  // Two queries rather than one union, because a single `out` gives no way to
+  // tell which set an element came from.
+  //
+  // is_in finds areas containing the point regardless of how far away their
+  // vertices are -- a county, a park -- which `around` would miss entirely.
+  // around then catches everything nearby, including small polygons that
+  // Overpass never turned into areas, which are re-classified as enclosing
+  // client-side by an actual point-in-polygon test.
+  const enclosingQL = `[out:json][timeout:25];
+    is_in(${lat},${lon})->.a;
+    (way(pivot.a); rel(pivot.a););
+    out tags bb;`;
+  // Nodes and ways only. Relations in an `around` set are mostly boundaries,
+  // and `out geom` expands each into every member way -- 42 of them turned one
+  // click into a 3.4 MB response. is_in already covers enclosing boundaries,
+  // Nodes and ways at the same radius come to about 85 KB.
+  const nearbyQL = `[out:json][timeout:25];
+    (node(around:${r},${lat},${lon}); way(around:${r},${lat},${lon}););
+    out geom ${MAX_CLICK};`;
+
+  try {
+    const [encl, near] = await Promise.all([
+      overpass(enclosingQL).then(toFeatures).catch(() => []),
+      overpass(nearbyQL).then(toFeatures)
+    ]);
+
+    const seen = new Map();
+    for (const f of encl) { f.properties.match = 'enclosing'; seen.set(f.id, f); }
+    for (const f of near) {
+      if (seen.has(f.id)) continue;
+      f.properties.match = contains(f.geometry, pt) ? 'enclosing' : 'nearby';
+      seen.set(f.id, f);
+    }
+
+    features = [...seen.values()];
+    for (const f of features) {
+      f.properties.area_m2 = roughArea(f.geometry) || null;
+      f.properties.dist_m  = f.properties.match === 'nearby'
+        ? minDistance(f.geometry, pt) : 0;
+    }
+    features.sort((a, b) => {
+      const A = a.properties, B = b.properties;
+      if ((A.match === 'enclosing') !== (B.match === 'enclosing'))
+        return A.match === 'enclosing' ? -1 : 1;
+      if (A.match === 'enclosing') return (A.area_m2 || 0) - (B.area_m2 || 0);
+      return A.dist_m - B.dist_m;
+    });
+
+    listMode = 'click';
+    render();
+  } catch (e) {
+    $('list').innerHTML = `<div id="hint" style="display:block">Query failed: ${esc(e.message)}</div>`;
+  } finally {
+    $('busy').style.display = 'none';
+  }
+}
+
+function render() {
+  const list = $('list');
+  $('detail').style.display = 'none';
+  selected = -1;
+  $('export').disabled = !(listMode === 'search' && features.length);
+
+  if (!features.length) {
+    list.innerHTML = listMode === 'search'
+      ? `<div class="grp">No matches</div><div class="empty">
+         Nothing matched in this area. Try <b>any</b> instead of <b>all</b>, widen the area,
+         or clear a value to match the bare key.</div>`
+      : `<div class="grp">No features here</div><div class="empty">
+         Nothing within ${radiusFor().toFixed(0)} m. Zoom in for a tighter radius,
+         or click nearer an object.</div>`;
+    return;
+  }
+
+  let html = '', lastGroup = '';
+  if (listMode === 'search') {
+    // max_features is a LIMIT, so a full page means there are probably more.
+    const capped = features.length >= searchLimit;
+    html += `<div class="grp">${features.length} result${features.length === 1 ? '' : 's'}`
+          + `${capped ? ' &middot; limit reached' : ''}</div>`;
+  }
+  features.forEach((f, i) => {
+    const p = f.properties;
+    if (listMode === 'click') {
+      const g = p.match === 'enclosing' ? 'Enclosing areas' : 'Nearby';
+      if (g !== lastGroup) { html += `<div class="grp">${g}</div>`; lastGroup = g; }
+    }
+    const name = p.name || `(unnamed ${p.osm_type})`;
+    const extra = (listMode === 'click' && p.match === 'nearby')
+      ? `${describe(p)} &middot; ${Math.round(p.dist_m)} m`
+      : describe(p);
+    html += `<div class="it" data-i="${i}">
+      <div class="ico ${iconFor(f.geometry)}"></div>
+      <div><div class="nm">${esc(name)}</div><div class="ds">${extra}</div></div></div>`;
+  });
+  list.innerHTML = html;
+  list.querySelectorAll('.it').forEach(el =>
+    el.onclick = () => select(+el.dataset.i));
+}
+
+function select(i) {
+  selected = i;
+  const f = features[i], p = f.properties;
+  $('list').querySelectorAll('.it').forEach(el =>
+    el.classList.toggle('on', +el.dataset.i === i));
+
+  // Anything over ~1 km2 is outlined rather than filled (see sel-fill filter).
+  const big = p.approx || (p.area_m2 || 0) > 1e6;
+  map.getSource('sel').setData({
+    type:'FeatureCollection',
+    features:[{ ...f, properties:{ ...p, big } }]
+  });
+  // A search result can be anywhere; bring it into view. Click results are
+  // already under the cursor, so leave the camera alone for those.
+  if (listMode === 'search') {
+    const b = geomBounds(f.geometry);
+    if (b) map.fitBounds(b, { padding:{ top:60, bottom:60, left:360, right:60 },
+                              maxZoom:17, duration:400 });
+  }
+
+  const tags = p.tags || {};
+  const rows = Object.entries(tags).sort(([a],[b]) => a.localeCompare(b))
+    .map(([k,v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('');
+  // Overpass carries the element type directly, so the OSM link needs no
+  // guesswork about whether an id belongs to a way or a relation.
+  const otype = p.osm_type;
+  const id = p.osm_id;
+  // Search results carry no match/dist_m -- those exist only on click queries.
+  const bits = [ `${p.osm_type}`,
+                 p.approx ? 'approximate extent'
+                   : p.area_m2 ? `~${Math.round(p.area_m2).toLocaleString()} m&sup2;` : null,
+                 p.match === 'nearby' ? `${Math.round(p.dist_m)} m away`
+                   : p.match === 'enclosing' ? 'contains this point' : null ]
+                 .filter(Boolean).join(' &middot; ');
+  $('detail').innerHTML = `
+    <h2>${esc(p.name || '(unnamed)')}</h2>
+    <div class="meta">${bits}</div>
+    <table>${rows || '<tr><td colspan=2>no tags</td></tr>'}</table>
+    <div style="margin-top:9px;font-size:12px">
+      <a href="https://www.openstreetmap.org/${otype}/${id}" target="_blank" rel="noopener">
+        View ${otype} ${id} on OSM &nearr;</a></div>`;
+  $('detail').style.display = 'block';
+}
+
+function setSrc(id, data) {
+  const src = map.getSource(id);
+  if (src) src.setData(data);
+}
+
+// ---- tag search ---------------------------------------------------------
+// The extract's own bounds, matching the map's maxBounds. osm_search caps the
+// bbox at 25 square degrees and this is about 20, so "whole region" is legal.
+const REGION = { minlon:-85.6, minlat:38.0, maxlon:-80.4, maxlat:41.9 };
+
+function addTagRow(key = '', val = '') {
+  const row = document.createElement('div');
+  row.className = 'tagrow';
+  row.innerHTML = `<input class="tk" placeholder="key" spellcheck="false">
+                   <input class="tv" placeholder="value (blank = any)" spellcheck="false">
+                   <button type="button" title="Remove">&times;</button>`;
+  row.querySelector('.tk').value = key;
+  row.querySelector('.tv').value = val;
+  row.querySelector('button').onclick = () => {
+    row.remove();
+    if (!$('tagrows').children.length) addTagRow();   // never leave zero rows
+  };
+  row.querySelectorAll('input').forEach(i =>
+    i.addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); }));
+  $('tagrows').appendChild(row);
+}
+
+// One {k, v} per filled row. A blank value means the bare key -- any value.
+function tagRows() {
+  return [...$('tagrows').querySelectorAll('.tagrow')].map(r => ({
+    k: r.querySelector('.tk').value.trim(),
+    v: r.querySelector('.tv').value.trim()
+  })).filter(r => r.k);
+}
+
+const kindsPicked = () =>
+  [...document.querySelectorAll('.kind')].filter(c => c.checked).map(c => c.value);
+
+function say(msg) {
+  const el = $('searchmsg');
+  el.innerHTML = msg || '';
+  el.style.display = msg ? 'block' : 'none';
+}
+
+function geomBounds(g) {
+  let minx = 180, miny = 90, maxx = -180, maxy = -90, seen = false;
+  (function walk(c) {
+    if (typeof c[0] === 'number') {
+      seen = true;
+      if (c[0] < minx) minx = c[0];
+      if (c[0] > maxx) maxx = c[0];
+      if (c[1] < miny) miny = c[1];
+      if (c[1] > maxy) maxy = c[1];
+    } else c.forEach(walk);
+  })(g.coordinates || []);
+  return seen ? [[minx, miny], [maxx, maxy]] : null;
+}
+
+// Build Overpass QL from the panel. 'all' becomes one element with every
+// filter chained; 'any' becomes a union of one element per filter.
+function buildQL(rows, kinds, mode, box, limit) {
+  const q = v => `"${String(v).replace(/["\\]/g, '\\$&')}"`;
+  const clause = r => r.v ? `[${q(r.k)}=${q(r.v)}]` : `[${q(r.k)}]`;
+  const bbox = `(${box.minlat},${box.minlon},${box.maxlat},${box.maxlon})`;
+  const parts = [];
+  for (const kind of kinds) {
+    if (mode === 'all') {
+      parts.push(`  ${kind}${rows.map(clause).join('')}${bbox};`);
+    } else {
+      for (const r of rows) parts.push(`  ${kind}${clause(r)}${bbox};`);
+    }
+  }
+  return `[out:json][timeout:90];\n(\n${parts.join('\n')}\n);\nout geom ${limit};`;
+}
+
+async function runSearch() {
+  const rows = tagRows();
+  if (!rows.length) { say('Add at least one tag key.'); return; }
+  const kinds = kindsPicked();
+  if (!kinds.length) { say('Pick at least one object type.'); return; }
+  say('');
+
+  const region = $('scope').value === 'region';
+  let box = REGION;
+  if (!region) {
+    const b = map.getBounds();
+    box = { minlon:b.getWest(), minlat:b.getSouth(), maxlon:b.getEast(), maxlat:b.getNorth() };
+  }
+  searchLimit = Math.min(Math.max(parseInt($('maxfeat').value, 10) || 1000, 1), 10000);
+  const ql = buildQL(rows, kinds, document.querySelector('input[name=mode]:checked').value,
+                     box, searchLimit);
+
+  $('busy').style.display = 'block';
+  $('hint').style.display = 'none';
+  $('go').disabled = true;
+  try {
+    features = toFeatures(await overpass(ql));
+    listMode = 'search';
+    if (marker) { marker.remove(); marker = null; }
+    setSrc('sel', { type:'FeatureCollection', features:[] });
+    setSrc('results', { type:'FeatureCollection', features });
+    render();
+    if (region && features.length) {
+      let bb = null;
+      for (const f of features) {
+        const b = geomBounds(f.geometry);
+        if (!b) continue;
+        bb = bb ? [[Math.min(bb[0][0], b[0][0]), Math.min(bb[0][1], b[0][1])],
+                   [Math.max(bb[1][0], b[1][0]), Math.max(bb[1][1], b[1][1])]] : b;
+      }
+      if (bb) map.fitBounds(bb, { padding:{ top:50, bottom:50, left:350, right:50 },
+                                  maxZoom:15, duration:500 });
+    }
+  } catch (e) {
+    say(`Search failed: ${esc(e.message)}`);
+    features = []; listMode = 'search'; render();
+  } finally {
+    $('busy').style.display = 'none';
+    $('go').disabled = false;
+  }
+}
+
+function clearSearch() {
+  features = []; selected = -1; listMode = 'click';
+  setSrc('results', { type:'FeatureCollection', features:[] });
+  setSrc('sel', { type:'FeatureCollection', features:[] });
+  if (marker) { marker.remove(); marker = null; }
+  $('list').innerHTML = '';
+  $('detail').style.display = 'none';
+  $('hint').style.display = 'block';
+  $('export').disabled = true;
+  say('');
+}
+
+// Export exactly what is in the list, as a FeatureCollection. The geometry was
+// already converted to GeoJSON in EPSG:4326 on the way in, so this is a
+// re-wrap rather than a conversion.
+function exportGeoJSON() {
+  if (!features.length) return;
+  const fc = {
+    type: 'FeatureCollection',
+    features: features.map(f => ({
+      type: 'Feature',
+      geometry: f.geometry,
+      properties: { osm_type: f.properties.osm_type, osm_id: f.properties.osm_id,
+                    name: f.properties.name, ...(f.properties.tags || {}) }
+    }))
+  };
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+  const blob = new Blob([JSON.stringify(fc)], { type:'application/geo+json' });
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement('a'),
+                          { href:url, download:`osm-search-${stamp}.geojson` });
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+addTagRow('amenity', 'cafe');
+$('addtag').onclick = () => addTagRow();
+$('go').onclick = runSearch;
+$('clear').onclick = clearSearch;
+$('export').onclick = exportGeoJSON;
+
+// ---- data freshness in the subtitle -------------------------------------
+// Overpass reports the vintage of the data that answered the query, in every
+// response, so this is a property of the answer rather than a separate call.
+function showVintage(iso) {
+  if (!iso) return;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return;
+  const z = n => String(n).padStart(2, '0');
+  const stamp = `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} `
+              + `${z(d.getHours())}:${z(d.getMinutes())}`;
+  const mins = Math.max(0, Math.round((Date.now() - d.getTime()) / 60000));
+  const age = mins < 90 ? `${mins} min behind`
+            : mins < 60*36 ? `${Math.round(mins/60)} h behind`
+            : `${Math.round(mins/1440)} d behind`;
+  const el = $('sub');
+  el.textContent = `Overpass API \u00b7 ${age}`;
+  el.title = `Data vintage ${iso} (UTC), ${stamp} local`;
+}
+
+async function refreshStatus() {
+  try {
+    const d = await overpass('[out:json][timeout:25];node(1);out ids;');
+    showVintage(d.osm3s && d.osm3s.timestamp_osm_base);
+  } catch { /* leave the subtitle as-is */ }
+}
+refreshStatus();
+setInterval(refreshStatus, 5 * 60 * 1000);
+
+map.on('click', e => queryAt(e.lngLat));
+map.on('contextmenu', e => queryAt(e.lngLat));
+map.on('mouseenter', 'sel-fill', () => map.getCanvas().style.cursor = 'pointer');
+map.getCanvas && (map.getCanvas().style.cursor = 'crosshair');
+map.on('error', e => console.error('map error', e && e.error));
+</script>
+</body>
+</html>

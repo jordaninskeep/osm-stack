@@ -1,0 +1,8 @@
+.env
+*.osm.pbf
+__pycache__/
+*.pyc
+*.pmtiles
+
+# Per-teammate basic-auth credentials for the Overpass endpoint.
+caddy/auth/*.caddy

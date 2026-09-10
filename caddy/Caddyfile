@@ -1,0 +1,129 @@
+{
+	tailscale {
+		# Named node for the tailnet listener referenced by `bind` below. Node
+		# name and tags are substituted at adapt time ({$...}) so they end up
+		# literal in the config; the auth key stays a runtime placeholder
+		# ({env....}) so the secret isn't baked into the autosaved JSON.
+		# tags is required because TS_AUTHKEY is an OAuth client secret.
+		{$TS_HOSTNAME} {
+			auth_key {env.TS_AUTHKEY}
+			hostname {$TS_HOSTNAME}
+			ephemeral false
+			tags {$TS_TAGS}
+			state_dir /var/lib/tailscale
+		}
+	}
+}
+
+https://{$TS_DOMAIN} {
+	bind tailscale/{$TS_HOSTNAME}
+
+	encode zstd gzip
+
+	# The interactive map. .mjs must be served as JavaScript or the browser
+	# refuses the module import with a MIME type error.
+	handle /map/* {
+		root * /srv
+		file_server
+		@mjs path *.mjs
+		header @mjs Content-Type "text/javascript; charset=utf-8"
+	}
+	redir /map /map/
+
+	# Vector tiles. Martin runs with --route-prefix /tiles so the paths it
+	# advertises in its TileJSON match what we serve here -- hence `handle`
+	# rather than `handle_path` (the prefix must NOT be stripped).
+	# 502s here simply mean the optional `tiles` profile isn't running.
+	handle /tiles/* {
+		reverse_proxy martin:3000
+	}
+
+	# Overpass API-compatible endpoint, so a client changes only its base URL:
+	#   https://overpass-api.de/api/interpreter  ->  https://<this host>/api/interpreter
+	# Unauthenticated here, like every other route on the tailnet listener.
+	# 502 means the optional `overpass` profile is not running.
+	# Human documentation for the endpoint, served from web/apidocs. An exact
+	# path match, so everything else under /api/ still reaches Overpass.
+	redir /api /api/
+	handle /api/ {
+		root * /srv/map
+		rewrite * /apidocs/index.html
+		file_server
+	}
+
+	handle /api/* {
+		reverse_proxy overpass:80
+	}
+
+	# The same Overpass, reached by the map itself. It exists because on the
+	# public listener /api/* is behind basic auth, and the map's fetch() has no
+	# credentials to send -- an Access SSO cookie does not satisfy basic auth,
+	# so every query came back 401. This path carries whatever protection the
+	# listener already applies and adds none of its own.
+	handle_path /map-api/* {
+		rewrite * /api{uri}
+		reverse_proxy overpass:80
+	}
+
+	# The map is the only thing at the root; nothing else is served from /.
+	redir / /map/ permanent
+	respond 404
+}
+
+# Reached only by cloudflared, over the compose bridge network. No `bind`, so
+# this is a normal listener -- but it is not published to any host port, so it
+# is unreachable from the LAN or the internet except through the tunnel.
+:8080 {
+	encode zstd gzip
+
+	handle /map/* {
+		root * /srv
+		file_server
+		@mjs path *.mjs
+		header @mjs Content-Type "text/javascript; charset=utf-8"
+	}
+	redir /map /map/
+
+	handle /tiles/* {
+		reverse_proxy martin:3000 {
+			header_up X-Forwarded-Proto https
+		}
+	}
+
+	# Overpass API-compatible endpoint for teammates, one credential each.
+	# The import pulls in caddy/auth/*.caddy, which is gitignored and mounted
+	# at runtime. With no files there the block has no users and returns 401
+	# to everyone -- an empty user list denies, it does not allow.
+	# The docs page sits behind the same credential as the endpoint it
+	# documents, which also means a reader's browser has already sent them --
+	# so the page's "Try it" box works without asking again.
+	redir /api /api/
+	handle /api/ {
+		basic_auth {
+			import /etc/caddy/auth/*.caddy
+		}
+		root * /srv/map
+		rewrite * /apidocs/index.html
+		file_server
+	}
+
+	handle /api/* {
+		basic_auth {
+			import /etc/caddy/auth/*.caddy
+		}
+		reverse_proxy overpass:80
+	}
+
+	# The map's own route to Overpass. Deliberately NOT behind basic_auth: the
+	# map is already behind Cloudflare Access here, and a browser fetch() sends
+	# no basic-auth credentials, so guarding this would break click and search
+	# for every SSO user. Access is what protects it; /api/* stays credentialed
+	# for tooling that cannot do SSO.
+	handle_path /map-api/* {
+		rewrite * /api{uri}
+		reverse_proxy overpass:80
+	}
+
+	redir / /map/ permanent
+	respond 404
+}

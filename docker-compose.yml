@@ -1,0 +1,164 @@
+name: osm
+
+services:
+
+  # Fetches the extract both Planetiler and Overpass build from. Nothing else
+  # downloads it, so it needs an owner of its own. One-shot:
+  #
+  #   docker compose --profile pbf run --rm pbf
+  #
+  # Re-run it to pick up a newer extract, then rebuild the basemap.
+  pbf:
+    image: alpine:3.20
+    profiles: ["pbf"]
+    restart: "no"
+    command:
+      - sh
+      - -c
+      - 'apk add --no-cache curl >/dev/null && curl -fL --retry 3 --retry-delay 5
+         -o /data/region.osm.pbf "$${OSM_PBF_URL}" && ls -la /data/region.osm.pbf'
+    environment:
+      OSM_PBF_URL: ${OSM_PBF_URL}
+    volumes:
+      - osmdata:/data
+
+  # Basemap tiles and glyphs. Martin serves the Planetiler-built archive and
+  # the vendored fonts; it holds no database connection and nothing live.
+  martin:
+    image: ghcr.io/maplibre/martin:latest
+    profiles: ["tiles"]
+    restart: unless-stopped
+    # Serves under /tiles so Caddy can pass the path through unmodified and
+    # Martin's own TileJSON URLs stay correct. The trailing path is the
+    # Planetiler-built basemap archive; Martin skips it silently if it has not
+    # been generated yet.
+    command: ["--route-prefix", "/tiles", "--font", "/fonts", "/basemap"]
+    volumes:
+      - tiles:/basemap:ro
+      # Glyph source. MapLibre renders no text at all without this, silently.
+      - ./fonts:/fonts:ro
+    ports:
+      - "${MARTIN_PORT:-127.0.0.1:3003}:3000"
+
+  # One-shot job: generates the basemap .pmtiles from the same extract the
+  # importer downloaded. Not a long-running service -- run it on demand:
+  #   docker compose --profile basemap run --rm planetiler
+  # Re-run it whenever you want the basemap to catch up with the data.
+  planetiler:
+    build:
+      context: ./planetiler
+      args:
+        BASEMAPS_REF: ${BASEMAPS_REF:-a50c699adc60a45c899971b1e11275e61f13bfbf}
+    profiles: ["basemap"]
+    restart: "no"
+    environment:
+      PBF: /data/region.osm.pbf
+      OUT: /tiles/out/basemap.pmtiles
+      SRC: /tiles/sources
+      CLIP_BBOX: ${CLIP_BBOX:-}
+      JAVA_HEAP: ${PLANETILER_HEAP:-4g}
+      PLANETILER_ARGS: ${PLANETILER_ARGS:-}
+    volumes:
+      - osmdata:/data:ro
+      - tiles:/tiles/out
+      - planetiler_tmp:/tiles/tmp
+      # Natural Earth download cache -- persisted so it is fetched once, not per run.
+      - planetiler_src:/tiles/sources
+
+  # Publishes the stack on the tailnet as its own node, with automatic HTTPS.
+  caddy:
+    build: ./caddy
+    restart: unless-stopped
+    environment:
+      # Left unguarded so the image can be built before a key is pasted in;
+      # caddy-tailscale fails loudly at startup if it is empty.
+      TS_AUTHKEY: ${TS_AUTHKEY:-}
+      TS_HOSTNAME: ${TS_HOSTNAME:-osm}
+      TS_DOMAIN: ${TS_DOMAIN:-osm.example.ts.net}
+      TS_TAGS: ${TS_TAGS:-tag:container}
+    volumes:
+      # Static map app. Read-only: Caddy only ever serves these.
+      - ./web:/srv/map:ro
+      # Per-teammate basic-auth credentials for /api/*. Gitignored, mounted at
+      # runtime rather than baked in. Missing files mean 401, not open access.
+      - ./caddy/auth:/etc/caddy/auth:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_tailscale:/var/lib/tailscale
+
+  # Outbound-only connector. Opens no ports; it dials Cloudflare.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    profiles: ["public"]
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN}
+    depends_on:
+      - caddy
+
+  # Overpass API, for teammates whose tooling already speaks Overpass QL.
+  # The query API and the only live data path in the stack. Built from the same
+  # extract the basemap uses, and kept current from a replication stream.
+  #
+  #   docker compose --profile overpass up -d
+  #
+  # The first start imports the extract and builds areas, which takes a while;
+  # it serves nothing until that finishes. Watch it with
+  #   docker compose logs -f overpass
+  overpass:
+    image: wiktorn/overpass-api:latest
+    profiles: ["overpass"]
+    restart: unless-stopped
+    environment:
+      # Build from the very file the importer already downloaded, rather than
+      # fetching the extract a second time. The entrypoint runs this through
+      # curl, which handles file:// and reports HTTP 000 -- a case the script
+      # explicitly accepts.
+      OVERPASS_PLANET_URL: file:///pbf/region.osm.pbf
+      # The image expects bzipped XML and pipes the download straight into
+      # bunzip2, so a .pbf fails with "is not a bzip2 file" and the container
+      # restart-loops, re-reading the extract every cycle. Convert it first.
+      # The chmod is not incidental: the image ships /db as mode 700 owned by
+      # the overpass user, but nginx and fcgiwrap -- which execute the CGI that
+      # opens /db/db/osm3s_osm_base -- run as uid 101. Without o+x on /db every
+      # query returns HTTP 200 carrying "runtime error: open64: 13 Permission
+      # denied". This hook runs as root before init, which is the only place to
+      # fix it without overriding the entrypoint.
+      OVERPASS_PLANET_PREPROCESS: >-
+        chmod 755 /db &&
+        mv /db/planet.osm.bz2 /db/planet.osm.pbf &&
+        osmium cat -o /db/planet.osm.bz2 -f osm.bz2 /db/planet.osm.pbf &&
+        rm /db/planet.osm.pbf
+      # Geofabrik's matching diff directory: the extract URL with
+      # -latest.osm.pbf replaced by -updates/. No default -- a wrong value here
+      # silently stops updates.
+      OVERPASS_DIFF_URL: ${OVERPASS_DIFF_URL:-}
+      # Runs against each downloaded change file before it is applied. Empty
+      # while the source is a regional stream, which needs no clipping. Set it
+      # when moving to planet minutely, which is global: applied unclipped the
+      # database grows toward planet size. scripts/switch-to-minutely.sh fills
+      # it in.
+      OVERPASS_DIFF_PREPROCESS: ${OVERPASS_DIFF_PREPROCESS:-}
+      OVERPASS_MODE: init
+      # Element metadata (version, timestamp, user). The image defaults this to
+      # "no", which makes `out meta;` return nothing.
+      OVERPASS_META: ${OVERPASS_META:-yes}
+      # Builds the areas that `area[name=...]` and `is_in` need. Adds time and
+      # disk to the init; without it every area query returns empty.
+      OVERPASS_USE_AREAS: "true"
+      OVERPASS_UPDATE_SLEEP: ${OVERPASS_UPDATE_SLEEP:-3600}
+    volumes:
+      - overpass_db:/db
+      # The importer's extract, read-only. Same bytes into both databases.
+      - osmdata:/pbf:ro
+    # No published port: Caddy reaches it over the compose network, and the
+    # public route is behind basic auth.
+
+volumes:
+  osmdata:
+  tiles:
+  planetiler_tmp:
+  planetiler_src:
+  caddy_data:
+  caddy_config:
+  caddy_tailscale:
+  overpass_db:

@@ -1,0 +1,267 @@
+<mxfile host="app.diagrams.net" agent="osm-stack" type="device" version="24.7.17">
+  <diagram id="architecture" name="Architecture">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1560" pageHeight="880" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="g-ext" value="Internet (outbound only)" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#9e9e9e;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="210" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="g-host" value="VPS / Docker host  -  compose network: osm_default" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#9e9e9e;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="290" y="40" width="900" height="740" as="geometry" />
+        </mxCell>
+        <mxCell id="g-cli" value="Consumers" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#9e9e9e;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="70" width="280" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-geo" value="&lt;b&gt;Geofabrik&lt;/b&gt;&lt;br&gt;regional extract .osm.pbf" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#f5f5f5;strokeColor=#8c8c8c;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-rep" value="&lt;b&gt;Replication stream&lt;/b&gt;&lt;br&gt;extract diffs (daily)  or&lt;br&gt;planet minutely, clipped" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#f5f5f5;strokeColor=#8c8c8c;" vertex="1" parent="1">
+          <mxGeometry x="60" y="220" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-ne" value="&lt;b&gt;Natural Earth&lt;/b&gt;&lt;br&gt;low-zoom basemap data" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#f5f5f5;strokeColor=#8c8c8c;" vertex="1" parent="1">
+          <mxGeometry x="60" y="340" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c-pbf" value="&lt;b&gt;pbf&lt;/b&gt;&lt;br&gt;profile: pbf  (one-shot)&lt;br&gt;downloads the extract" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="320" y="110" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="v-osm" value="osmdata&lt;br&gt;region.osm.pbf" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=8;whiteSpace=wrap;html=1;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="340" y="210" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c-plan" value="&lt;b&gt;Planetiler&lt;/b&gt;&lt;br&gt;profile: basemap  (one-shot)&lt;br&gt;Protomaps schema" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="320" y="330" width="200" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="v-tiles" value="tiles&lt;br&gt;basemap.pmtiles" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=8;whiteSpace=wrap;html=1;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="340" y="450" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c-ovp" value="&lt;b&gt;Overpass API&lt;/b&gt;&lt;br&gt;&lt;br&gt;osm3s database + dispatcher&lt;br&gt;diff updater on its own loop&lt;br&gt;areas built for is_in / area[]" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="570" y="100" width="220" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="v-ovp" value="overpass_db" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=8;whiteSpace=wrap;html=1;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="610" y="265" width="140" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="c-mar" value="&lt;b&gt;Martin&lt;/b&gt;&lt;br&gt;profile: tiles&lt;br&gt;basemap archive + glyphs&lt;br&gt;no database" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="570" y="360" width="220" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="c-caddy" value="&lt;b&gt;Caddy&lt;/b&gt; + caddy-tailscale&lt;br&gt;&lt;br&gt;tailscale/osm:443  -  tailnet node&lt;br&gt;:8080  -  tunnel only, unpublished" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="850" y="120" width="210" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="c-cfd" value="&lt;b&gt;cloudflared&lt;/b&gt;&lt;br&gt;profile: public&lt;br&gt;dials out, opens no port" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="850" y="300" width="210" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cli-tail" value="&lt;b&gt;Tailnet devices&lt;/b&gt;&lt;br&gt;map, curl, QGIS, overpy&lt;br&gt;unauthenticated" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1255" y="120" width="230" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="cli-cf" value="&lt;b&gt;Cloudflare edge&lt;/b&gt;&lt;br&gt;Access SSO on /*&lt;br&gt;Bypass + rate limit on /api/*" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1255" y="300" width="230" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="cli-team" value="&lt;b&gt;Teammates&lt;/b&gt;&lt;br&gt;basic auth, one credential each" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1255" y="420" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n1" value="&lt;b&gt;One datastore.&lt;/b&gt;  Overpass answers every query the map makes:&lt;br&gt;is_in for enclosing areas, nwr(around:) for nearby, nwr[k=v] for&lt;br&gt;search. The basemap is the only other data path and it is prebuilt." style="shape=note;whiteSpace=wrap;html=1;size=14;fontSize=11;align=left;spacingLeft=6;fillColor=#ffffff;strokeColor=#b3b3b3;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="310" y="600" width="560" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="n2" value="&lt;b&gt;No inbound ports.&lt;/b&gt;  Caddy joins the tailnet through userspace&lt;br&gt;tsnet; cloudflared dials out. The host firewall drops everything." style="shape=note;whiteSpace=wrap;html=1;size=14;fontSize=11;align=left;spacingLeft=6;fillColor=#ffffff;strokeColor=#b3b3b3;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="890" y="600" width="290" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="Architecture-e1" value="download once" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="ext-geo" target="c-pbf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Architecture-e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="c-pbf" target="v-osm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Architecture-e3" value="initial import" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;dashed=1;strokeColor=#999999;" edge="1" parent="1" source="v-osm" target="c-ovp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Architecture-e4" value="same extract" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;dashed=1;strokeColor=#999999;" edge="1" parent="1" source="v-osm" target="c-plan">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Architecture-e5" value="diffs, applied on a loop" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="ext-rep" target="c-ovp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Architecture-e6" value="cached after first fetch" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;dashed=1;strokeColor=#999999;" edge="1" parent="1" source="ext-ne" target="c-plan">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Architecture-e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;dashed=1;strokeColor=#999999;" edge="1" parent="1" source="c-ovp" target="v-ovp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Architecture-e8" value="writes basemap.pmtiles" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="c-plan" target="v-tiles">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Architecture-e9" value="reads" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;dashed=1;strokeColor=#999999;" edge="1" parent="1" source="v-tiles" target="c-mar">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Architecture-e10" value="/api/*" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="c-ovp" target="c-caddy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Architecture-e11" value="/tiles/*" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="c-mar" target="c-caddy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Architecture-e12" value="https, MagicDNS cert" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="c-caddy" target="cli-tail">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Architecture-e13" value="http :8080" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="c-caddy" target="c-cfd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Architecture-e14" value="outbound tunnel" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="c-cfd" target="cli-cf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Architecture-e15" value="https + basic auth" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="cli-cf" target="cli-team">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="data-flow" name="Data flow">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1560" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="g1" value="1.  Ingest  -  OSM to Overpass" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#9e9e9e;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="1470" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="g2" value="2.  Basemap  -  the same extract to tiles" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#9e9e9e;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="340" width="1470" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="g3" value="3.  Read  -  Overpass to a client" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#9e9e9e;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="540" width="1470" height="400" as="geometry" />
+        </mxCell>
+        <mxCell id="f-pbf" value="&lt;b&gt;.osm.pbf&lt;/b&gt;&lt;br&gt;regional extract" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#f5f5f5;strokeColor=#8c8c8c;" vertex="1" parent="1">
+          <mxGeometry x="70" y="100" width="150" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="f-conv" value="&lt;b&gt;osmium cat&lt;/b&gt;&lt;br&gt;pbf to bzipped XML,&lt;br&gt;which the image requires" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="260" y="90" width="190" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="f-init" value="&lt;b&gt;init_osm3s&lt;/b&gt;&lt;br&gt;+ area generation" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="490" y="100" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="f-db" value="&lt;b&gt;osm3s database&lt;/b&gt;&lt;br&gt;/db/db" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="700" y="100" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="f-dif" value="&lt;b&gt;Replication diffs&lt;/b&gt;&lt;br&gt;daily extract  |  planet minutely" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#f5f5f5;strokeColor=#8c8c8c;" vertex="1" parent="1">
+          <mxGeometry x="70" y="200" width="150" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="f-clip" value="&lt;b&gt;osmium extract -b&lt;/b&gt;&lt;br&gt;clip to the extract bbox&lt;br&gt;(planet path only)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="260" y="195" width="190" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="f-app" value="&lt;b&gt;update_from_dir&lt;/b&gt;&lt;br&gt;every OVERPASS_UPDATE_SLEEP" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="490" y="200" width="190" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="f-n1" value="&lt;b&gt;Freshness comes from the source, not the interval.&lt;/b&gt;&lt;br&gt;A daily Geofabrik stream is ~25 h behind however often you poll.&lt;br&gt;Planet minutely is ~1-2 min behind, but is global: unclipped it&lt;br&gt;grows the database toward planet size, and the switch needs the&lt;br&gt;replicate_id reset into planet's sequence space." style="shape=note;whiteSpace=wrap;html=1;size=14;fontSize=11;align=left;spacingLeft=6;fillColor=#ffffff;strokeColor=#b3b3b3;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="900" y="95" width="590" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="f-pbf2" value="&lt;b&gt;.osm.pbf&lt;/b&gt;&lt;br&gt;from the osmdata volume" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#f5f5f5;strokeColor=#8c8c8c;" vertex="1" parent="1">
+          <mxGeometry x="70" y="400" width="150" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="f-pl" value="&lt;b&gt;Planetiler&lt;/b&gt;&lt;br&gt;Protomaps schema, z0-15&lt;br&gt;clipped by CLIP_BBOX" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="260" y="390" width="190" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="f-pm" value="&lt;b&gt;basemap.pmtiles&lt;/b&gt;&lt;br&gt;tiles volume" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=8;whiteSpace=wrap;html=1;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="490" y="400" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="f-mar" value="&lt;b&gt;Martin&lt;/b&gt;&lt;br&gt;tiles + glyphs" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="710" y="400" width="160" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="f-n2" value="Manual, not scheduled: the basemap lags the Overpass data&lt;br&gt;until Planetiler is re-run. Purge the Cloudflare cache after,&lt;br&gt;or the edge keeps serving the old tiles." style="shape=note;whiteSpace=wrap;html=1;size=14;fontSize=11;align=left;spacingLeft=6;fillColor=#ffffff;strokeColor=#b3b3b3;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="900" y="390" width="590" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="f-c1" value="&lt;b&gt;Map&lt;/b&gt;&lt;br&gt;click a point" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="70" y="600" width="150" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="f-c2" value="&lt;b&gt;Map&lt;/b&gt;&lt;br&gt;search by tag" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="70" y="680" width="150" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="f-c3" value="&lt;b&gt;QGIS / overpy / curl&lt;/b&gt;&lt;br&gt;existing Overpass tooling" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="70" y="780" width="150" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="f-q1" value="&lt;b&gt;is_in&lt;/b&gt;  -&gt;  out tags bb&lt;br&gt;enclosing areas, extent only" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="270" y="585" width="250" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="f-q2" value="&lt;b&gt;nwr(around:)&lt;/b&gt;  -&gt;  out geom&lt;br&gt;nodes and ways, 300 cap" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="270" y="650" width="250" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="f-q3" value="&lt;b&gt;nwr[k=v](bbox)&lt;/b&gt;  -&gt;  out geom&lt;br&gt;union for any, chained for all" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="270" y="715" width="250" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="f-q4" value="&lt;b&gt;any Overpass QL&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="270" y="790" width="250" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="f-cad" value="&lt;b&gt;Caddy&lt;/b&gt;&lt;br&gt;tailnet: open&lt;br&gt;public: basic auth" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="570" y="640" width="170" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="f-ovp" value="&lt;b&gt;Overpass&lt;/b&gt;&lt;br&gt;enforces [timeout:] and&lt;br&gt;[maxsize:] per query" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="790" y="640" width="180" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="f-json" value="&lt;b&gt;OSM JSON&lt;/b&gt;&lt;br&gt;elements[], not GeoJSON" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="600" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="f-gj" value="&lt;b&gt;GeoJSON&lt;/b&gt;&lt;br&gt;converted in the browser&lt;br&gt;-&gt; results source, export" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fontSize=12;align=center;verticalAlign=middle;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="690" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="f-n3" value="&lt;b&gt;Two out-statement traps.&lt;/b&gt;  `out tags geom` suppresses a relation's&lt;br&gt;members, and that is where relation geometry lives - so enclosing&lt;br&gt;areas come back with nothing to draw. And elements are emitted&lt;br&gt;nodes, then ways, then relations, so a low `out` limit truncates&lt;br&gt;before any polygon is reached." style="shape=note;whiteSpace=wrap;html=1;size=14;fontSize=11;align=left;spacingLeft=6;fillColor=#ffffff;strokeColor=#b3b3b3;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="790" width="470" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-pbf" target="f-conv">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-conv" target="f-init">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-init" target="f-db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-dif" target="f-clip">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-clip" target="f-app">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e6" value="applies" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-app" target="f-db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-pbf2" target="f-pl">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-pl" target="f-pm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-pm" target="f-mar">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-c1" target="f-q1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-c1" target="f-q2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-c2" target="f-q3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-c3" target="f-q4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-q1" target="f-cad">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-q2" target="f-cad">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-q3" target="f-cad">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-q4" target="f-cad">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-cad" target="f-ovp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-ovp" target="f-json">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Data flow-e20" value="toFeature()" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;fontSize=10;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;strokeColor=#4d4d4d;" edge="1" parent="1" source="f-json" target="f-gj">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
