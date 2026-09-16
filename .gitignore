@@ -6,3 +6,6 @@ __pycache__/
 
 # Per-teammate basic-auth credentials for the Overpass endpoint.
 caddy/auth/*.caddy
+
+# Local Claude Code settings (personal, not team config)
+.claude/settings.local.json
