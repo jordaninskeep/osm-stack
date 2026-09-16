@@ -9,7 +9,11 @@
 #
 # So gate on how recently the daily published. Fresh head + the script's own
 # "at head" check together mean a new daily just landed AND Overpass has
-# applied it -- the point where the gap is ~90 diffs instead.
+# applied it -- the point where the gap is ~200-350 diffs instead.
+#
+# Note that state.txt's timestamp= is the diff's data cutoff, not when the file
+# appeared: Geofabrik publishes ~3h10m after the cutoff it covers. So the age
+# floor is that lag, never zero, and MAX_AGE has to clear it.
 #
 # Hourly from cron. Exits silently outside the window, and once the switch has
 # happened switch-to-minutely.sh itself aborts with "already on the planet
@@ -17,7 +21,11 @@
 set -euo pipefail
 
 STREAM=https://download.geofabrik.de/north-america/us/ohio-updates/
-MAX_AGE=10800   # 3h: a daily published within this means a small planet gap
+# 6h: the publication lag (~3h10m) plus the hourly cron granularity puts the
+# first sighting of a fresh daily at ~3-4.5h old, and a switch-to-minutely.sh
+# abort ("not caught up", if the updater has not applied the daily yet) needs
+# another hour or two of retries inside the window.
+MAX_AGE=21600
 
 # MORPC 15-county region (REGION15), rounded outward from the county bounds.
 export OVERPASS_DIFF_BBOX="-84.03,39.15,-82.01,40.73"
