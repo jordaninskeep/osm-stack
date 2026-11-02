@@ -146,6 +146,11 @@ services:
       # disk to the init; without it every area query returns empty.
       OVERPASS_USE_AREAS: "true"
       OVERPASS_UPDATE_SLEEP: ${OVERPASS_UPDATE_SLEEP:-3600}
+      # Every request arrives through Caddy from one IP, so the dispatcher's
+      # per-client duplicate check treats all users as one: an identical query
+      # sent a few seconds after another is rejected with HTTP 200 and an HTML
+      # "duplicate_query" page, even for [out:json].
+      OVERPASS_ALLOW_DUPLICATE_QUERIES: "yes"
     volumes:
       - overpass_db:/db
       # The importer's extract, read-only. Same bytes into both databases.
